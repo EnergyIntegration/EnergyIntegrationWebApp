@@ -234,6 +234,7 @@ export default function App() {
   const [henPlot, setHenPlot] = useState<PlotlyFigurePayload | null>(null);
   const [henReady, setHenReady] = useState<boolean>(false);
   const [resultsReady, setResultsReady] = useState<boolean>(false);
+  const [henId, setHenId] = useState<string | null>(null);
   const [resultHotOrder, setResultHotOrder] = useState<string[]>([]);
   const [resultColdOrder, setResultColdOrder] = useState<string[]>([]);
   const [resultEdges, setResultEdges] = useState<ResultEdge[]>([]);
@@ -416,10 +417,13 @@ export default function App() {
   }
 
   async function fetchDetailMatrix(hot: string, cold: string): Promise<DetailMatrix> {
-    const key = `${hot}||${cold}`;
+    if (!henId) {
+      throw new Error("No HEN id. Build HEN first to get hen_id.");
+    }
+    const key = `${henId}||${hot}||${cold}`;
     const cached = detailCacheRef.current.get(key);
     if (cached) return cached;
-    const r = await fetch(`/api/results/match?hot=${encodeURIComponent(hot)}&cold=${encodeURIComponent(cold)}`);
+    const r = await fetch(`/api/results/match?hen_id=${encodeURIComponent(henId)}&hot=${encodeURIComponent(hot)}&cold=${encodeURIComponent(cold)}`);
     const body = await readJsonOrText(r);
     if (!r.ok || !body || typeof body !== "object" || !(body as any).ok) {
       const msg = (body as any)?.error?.message ?? "Failed to load detail matrix.";
@@ -440,10 +444,13 @@ export default function App() {
   }
 
   async function fetchStreamDetail(name: string, unit: StreamUnit): Promise<StreamDetail> {
-    const key = `${name}||${unit}`;
+    if (!henId) {
+      throw new Error("No HEN id. Build HEN first to get hen_id.");
+    }
+    const key = `${henId}||${name}||${unit}`;
     const cached = streamDetailCacheRef.current.get(key);
     if (cached) return cached;
-    const r = await fetch(`/api/results/stream?name=${encodeURIComponent(name)}&unit=${encodeURIComponent(unit)}`);
+    const r = await fetch(`/api/results/stream?hen_id=${encodeURIComponent(henId)}&name=${encodeURIComponent(name)}&unit=${encodeURIComponent(unit)}`);
     const body = await readJsonOrText(r);
     if (!r.ok || !body || typeof body !== "object" || !(body as any).ok) {
       const msg = (body as any)?.error?.message ?? "Failed to load stream detail.";
@@ -504,6 +511,7 @@ export default function App() {
   useEffect(() => {
     setHenReady(false);
     setResultsReady(false);
+    setHenId(null);
     setResultHotOrder([]);
     setResultColdOrder([]);
     setResultEdges([]);
@@ -582,6 +590,7 @@ export default function App() {
     setBackendResp(null);
     setHenPlot(null);
     setHenReady(false);
+    setHenId(null);
     const payload = buildPayloadSI(streams, intervalsConfig);
 
     try {
@@ -594,8 +603,10 @@ export default function App() {
       const body = await readJsonOrText(r);
       setBackendResp(toBackendResp(r, body));
       const fig = (body as any)?.plot;
-      if (r.ok && typeof body === "object" && body && (body as any).ok && fig && typeof fig === "object") {
-        setHenPlot(fig as PlotlyFigurePayload);
+      if (r.ok && typeof body === "object" && body && (body as any).ok) {
+        const nextHenId = String((body as any)?.hen_id ?? "");
+        setHenId(nextHenId || null);
+        setHenPlot(fig && typeof fig === "object" ? (fig as PlotlyFigurePayload) : null);
         setHenReady(true);
         setStep("build");
       }
@@ -612,11 +623,15 @@ export default function App() {
       setUiMsg("Build HEN first.");
       return;
     }
+    if (!henId) {
+      setBackendResp({ status: 400, ok: false, body: { message: "hen_id is required. Build HEN first to get hen_id." } });
+      return;
+    }
 
     fetch("/api/solve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: "{}",
+      body: JSON.stringify({ hen_id: henId }),
     })
       .then(async (r) => {
         const body = await readJsonOrText(r);
@@ -829,6 +844,7 @@ export default function App() {
             {sidebarOpen ? (
               <div className="text-gray-500 text-xs dark:text-neutral-400">
                 {lastStreamsetFileName ? `Last: ${lastStreamsetFileName}` : lastStreamsetId ? `Last: ${lastStreamsetId}` : "No load yet"}
+                <div>HEN: {henId ?? "-"}</div>
               </div>
             ) : null}
             <input
