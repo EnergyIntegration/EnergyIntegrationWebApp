@@ -588,7 +588,7 @@ export default function App() {
   }, [streams, intervalsConfig]);
 
   useEffect(() => {
-    apiFetch("/api/console", {}, { promptOn401: false }).catch(() => { });
+    apiFetch("/api/console", {}, { promptOn401: true }).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -651,7 +651,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
+      }, { promptOn401: false });
       setBackendResp(toBackendResp(r, body));
       const fig = (body as any)?.plot;
       if (r.ok && typeof body === "object" && body && (body as any).ok) {
@@ -684,7 +684,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hen_id: henId }),
-      });
+      }, { promptOn401: false });
       setBackendResp(toBackendResp(r, body));
       if (r.ok && body && typeof body === "object" && (body as any).ok) {
         setUiMsg("Solve completed.");
@@ -743,7 +743,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ schema_version: "ei-stream-ui-v1", name, streams, intervals_config: intervalsConfig }),
-      });
+      }, { promptOn401: false });
       setBackendResp(toBackendResp(r, body));
       if (r.ok && body && typeof body === "object" && "id" in body) {
         setLastStreamsetId(String((body as any).id));
