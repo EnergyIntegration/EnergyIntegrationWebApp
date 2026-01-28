@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, MouseEvent } from "react";
 import type { ForbiddenMatchUI, IntervalsConfigUI, OptimizationConfigUI, ScalarSpecUI, StreamRowUI } from "./types/stream";
 import type { Theme } from "./types/theme";
@@ -10,6 +10,8 @@ import { StreamsStep } from "./components/steps/StreamsStep";
 import { formatHeat } from "./lib/formatHeat";
 import { validateAll } from "./lib/validation";
 import { buildPayloadSI } from "./lib/payload";
+import githubBlack from "./assets/GitHub_Invertocat_Black.svg";
+import githubWhite from "./assets/GitHub_Invertocat_White.svg";
 import type { PlotlyFigurePayload } from "./types/plotly";
 import type {
   CellRef,
@@ -47,6 +49,55 @@ function toBackendResp(r: Response, body: unknown): { status: number; ok: boolea
     };
   }
   return { status: r.status, ok: r.ok, body: nextBody };
+}
+
+const API_KEY_STORAGE = "ei-api-key";
+
+function getStoredApiKey(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(API_KEY_STORAGE) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function setStoredApiKey(value: string) {
+  if (typeof window === "undefined") return;
+  try {
+    if (value) window.localStorage.setItem(API_KEY_STORAGE, value);
+    else window.localStorage.removeItem(API_KEY_STORAGE);
+  } catch {
+  }
+}
+
+function withApiHeaders(init: RequestInit, apiKey?: string) {
+  const headers = new Headers(init.headers ?? {});
+  if (apiKey) headers.set("X-API-Key", apiKey);
+  return { ...init, headers };
+}
+
+async function apiFetch(
+  input: RequestInfo,
+  init: RequestInit = {},
+  opts: { promptOn401?: boolean } = {}
+): Promise<{ r: Response; body: unknown }> {
+  const promptOn401 = opts.promptOn401 ?? true;
+  const storedKey = getStoredApiKey();
+  let r = await fetch(input, withApiHeaders(init, storedKey || undefined));
+  let body = await readJsonOrText(r);
+  if (r.status === 401 && promptOn401) {
+    const code = (body as any)?.error?.code ?? (body as any)?.code;
+    if (code === "api_key_required" || code === "invalid_api_key") {
+      const entered = window.prompt("Access key:");
+      if (entered) {
+        setStoredApiKey(entered);
+        r = await fetch(input, withApiHeaders(init, entered));
+        body = await readJsonOrText(r);
+      }
+    }
+  }
+  return { r, body };
 }
 
 function makeDefaultStream(n: number, thermal: "hot" | "cold"): StreamRowUI {
@@ -254,6 +305,7 @@ export default function App() {
   const [streamDetail, setStreamDetail] = useState<StreamDetail | null>(null);
   const [streamDetailUnit, setStreamDetailUnit] = useState<StreamUnit>("°C");
   const [streamDetailName, setStreamDetailName] = useState<string | null>(null);
+  const githubUrl = "https://github.com/EnergyIntegration/EnergyIntegration.jl";
   const [tooltipCell, setTooltipCell] = useState<CellRef | null>(null);
   const [tooltipLoading, setTooltipLoading] = useState<boolean>(false);
   const [tooltipError, setTooltipError] = useState<string>("");
@@ -423,8 +475,7 @@ export default function App() {
     const key = `${henId}||${hot}||${cold}`;
     const cached = detailCacheRef.current.get(key);
     if (cached) return cached;
-    const r = await fetch(`/api/results/match?hen_id=${encodeURIComponent(henId)}&hot=${encodeURIComponent(hot)}&cold=${encodeURIComponent(cold)}`);
-    const body = await readJsonOrText(r);
+    const { r, body } = await apiFetch(`/api/results/match?hen_id=${encodeURIComponent(henId)}&hot=${encodeURIComponent(hot)}&cold=${encodeURIComponent(cold)}`);
     if (!r.ok || !body || typeof body !== "object" || !(body as any).ok) {
       const msg = (body as any)?.error?.message ?? "Failed to load detail matrix.";
       throw new Error(String(msg));
@@ -450,8 +501,7 @@ export default function App() {
     const key = `${henId}||${name}||${unit}`;
     const cached = streamDetailCacheRef.current.get(key);
     if (cached) return cached;
-    const r = await fetch(`/api/results/stream?hen_id=${encodeURIComponent(henId)}&name=${encodeURIComponent(name)}&unit=${encodeURIComponent(unit)}`);
-    const body = await readJsonOrText(r);
+    const { r, body } = await apiFetch(`/api/results/stream?hen_id=${encodeURIComponent(henId)}&name=${encodeURIComponent(name)}&unit=${encodeURIComponent(unit)}`);
     if (!r.ok || !body || typeof body !== "object" || !(body as any).ok) {
       const msg = (body as any)?.error?.message ?? "Failed to load stream detail.";
       throw new Error(String(msg));
@@ -538,14 +588,17 @@ export default function App() {
   }, [streams, intervalsConfig]);
 
   useEffect(() => {
-    fetch("/api/console").catch(() => { });
+    apiFetch("/api/console", {}, { promptOn401: false }).catch(() => { });
   }, []);
 
   useEffect(() => {
     if (step !== "solve") return;
     if (consoleEsRef.current) return;
 
-    const consoleStreamUrl = "/api/console/stream";
+    const key = getStoredApiKey();
+    const consoleStreamUrl = key
+      ? `/api/console/stream?api_key=${encodeURIComponent(key)}`
+      : "/api/console/stream";
     setConsoleConnected(false);
     const es = new EventSource(consoleStreamUrl);
     consoleEsRef.current = es;
@@ -594,13 +647,11 @@ export default function App() {
     const payload = buildPayloadSI(streams, intervalsConfig);
 
     try {
-      const r = await fetch("/api/streams", {
+      const { r, body } = await apiFetch("/api/streams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      const body = await readJsonOrText(r);
       setBackendResp(toBackendResp(r, body));
       const fig = (body as any)?.plot;
       if (r.ok && typeof body === "object" && body && (body as any).ok) {
@@ -615,7 +666,7 @@ export default function App() {
     }
   }
 
-  function solveMILP() {
+  async function solveMILP() {
     setUiMsg("");
     setBackendResp(null);
 
@@ -628,57 +679,55 @@ export default function App() {
       return;
     }
 
-    fetch("/api/solve", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hen_id: henId }),
-    })
-      .then(async (r) => {
-        const body = await readJsonOrText(r);
-        setBackendResp(toBackendResp(r, body));
-        if (r.ok && body && typeof body === "object" && (body as any).ok) {
-          setUiMsg("Solve completed.");
-          detailCacheRef.current.clear();
-          streamDetailCacheRef.current.clear();
-          const hot = Array.isArray((body as any).hot_names) ? (body as any).hot_names.map((x: any) => String(x)) : [];
-          const cold = Array.isArray((body as any).cold_names) ? (body as any).cold_names.map((x: any) => String(x)) : [];
-          const edgesRaw = Array.isArray((body as any).edges) ? (body as any).edges : [];
-          const edges: ResultEdge[] = edgesRaw
-            .map((x: any) => ({
-              hot: String(x?.hot ?? ""),
-              cold: String(x?.cold ?? ""),
-              q_total: Number(x?.q_total ?? 0),
-            }))
-            .filter((x: ResultEdge) => x.hot && x.cold);
-
-          setResultHotOrder(hot);
-          setResultColdOrder(cold);
-          setResultEdges(edges);
-          setResultObjValue(Number((body as any).obj_value ?? NaN));
-          const reportRaw = (body as any).solution_report;
-          setSolutionReport(reportRaw && typeof reportRaw === "object" ? (reportRaw as SolutionReport) : null);
-          const econRaw = (body as any).economic_report;
-          if (econRaw && typeof econRaw === "object") {
-            const column_labels = Array.isArray((econRaw as any).column_labels)
-              ? (econRaw as any).column_labels.map((x: any) => String(x))
-              : [];
-            const row_labels = Array.isArray((econRaw as any).row_labels)
-              ? (econRaw as any).row_labels.map((x: any) => String(x))
-              : [];
-            const data = Array.isArray((econRaw as any).data)
-              ? (econRaw as any).data.map((row: any) => (Array.isArray(row) ? row.map((v: any) => String(v)) : []))
-              : [];
-            setEconomicReport({ column_labels, row_labels, data });
-          } else {
-            setEconomicReport(null);
-          }
-          setResultsReady(true);
-          setStep("results");
-        }
-      })
-      .catch((e: any) => {
-        setBackendResp({ status: 0, ok: false, body: { message: "Request failed", error: String(e) } });
+    try {
+      const { r, body } = await apiFetch("/api/solve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hen_id: henId }),
       });
+      setBackendResp(toBackendResp(r, body));
+      if (r.ok && body && typeof body === "object" && (body as any).ok) {
+        setUiMsg("Solve completed.");
+        detailCacheRef.current.clear();
+        streamDetailCacheRef.current.clear();
+        const hot = Array.isArray((body as any).hot_names) ? (body as any).hot_names.map((x: any) => String(x)) : [];
+        const cold = Array.isArray((body as any).cold_names) ? (body as any).cold_names.map((x: any) => String(x)) : [];
+        const edgesRaw = Array.isArray((body as any).edges) ? (body as any).edges : [];
+        const edges: ResultEdge[] = edgesRaw
+          .map((x: any) => ({
+            hot: String(x?.hot ?? ""),
+            cold: String(x?.cold ?? ""),
+            q_total: Number(x?.q_total ?? 0),
+          }))
+          .filter((x: ResultEdge) => x.hot && x.cold);
+
+        setResultHotOrder(hot);
+        setResultColdOrder(cold);
+        setResultEdges(edges);
+        setResultObjValue(Number((body as any).obj_value ?? NaN));
+        const reportRaw = (body as any).solution_report;
+        setSolutionReport(reportRaw && typeof reportRaw === "object" ? (reportRaw as SolutionReport) : null);
+        const econRaw = (body as any).economic_report;
+        if (econRaw && typeof econRaw === "object") {
+          const column_labels = Array.isArray((econRaw as any).column_labels)
+            ? (econRaw as any).column_labels.map((x: any) => String(x))
+            : [];
+          const row_labels = Array.isArray((econRaw as any).row_labels)
+            ? (econRaw as any).row_labels.map((x: any) => String(x))
+            : [];
+          const data = Array.isArray((econRaw as any).data)
+            ? (econRaw as any).data.map((row: any) => (Array.isArray(row) ? row.map((v: any) => String(v)) : []))
+            : [];
+          setEconomicReport({ column_labels, row_labels, data });
+        } else {
+          setEconomicReport(null);
+        }
+        setResultsReady(true);
+        setStep("results");
+      }
+    } catch (e: any) {
+      setBackendResp({ status: 0, ok: false, body: { message: "Request failed", error: String(e) } });
+    }
   }
 
   async function saveStreamset() {
@@ -690,13 +739,11 @@ export default function App() {
     if (!name) return;
 
     try {
-      const r = await fetch("/api/streamsets", {
+      const { r, body } = await apiFetch("/api/streamsets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ schema_version: "ei-stream-ui-v1", name, streams, intervals_config: intervalsConfig }),
       });
-
-      const body = await readJsonOrText(r);
       setBackendResp(toBackendResp(r, body));
       if (r.ok && body && typeof body === "object" && "id" in body) {
         setLastStreamsetId(String((body as any).id));
@@ -758,7 +805,7 @@ export default function App() {
   return (
     <div className="h-screen w-screen flex" style={{ backgroundColor: "var(--bg-color)", color: "var(--text-color)" }}>
       <aside
-        className={`${sidebarOpen ? "w-64" : "w-16"} shrink-0 border-r overflow-hidden transition-all ${sidebarTone}`}
+        className={`${sidebarOpen ? "w-60" : "w-16"} shrink-0 border-r overflow-hidden transition-all ${sidebarTone}`}
       >
         <div className="h-full flex flex-col p-3 gap-3">
           <div className={sidebarOpen ? "flex items-center justify-between" : "flex items-center justify-center"}>
@@ -769,16 +816,6 @@ export default function App() {
               </div>
             ) : null}
             <div className="flex items-center gap-2">
-              {sidebarOpen ? (
-                <button
-                  className={`w-10 h-10 flex items-center justify-center border rounded transition-colors ${buttonTone}`}
-                  onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-                  title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-                  aria-label="Toggle theme"
-                >
-                  <span className="text-lg">{themeIcon}</span>
-                </button>
-              ) : null}
               <button
                 className={`w-10 h-10 flex items-center justify-center border rounded transition-colors ${buttonTone}`}
                 onClick={() => setSidebarOpen((v) => !v)}
@@ -824,29 +861,51 @@ export default function App() {
             })}
           </nav>
 
-          <div className={`mt-auto flex items-center ${sidebarOpen ? "gap-2" : "flex-col gap-2"}`}>
-            <button
-              className={`w-10 h-10 flex items-center justify-center border rounded transition-colors ${buttonTone}`}
-              onClick={saveStreamset}
-              title="Save streamset"
-              aria-label="Save streamset"
-            >
-              <span className="text-lg">⤓</span>
-            </button>
-            <button
-              className={`w-10 h-10 flex items-center justify-center border rounded transition-colors ${buttonTone}`}
-              onClick={loadStreamset}
-              title="Load streamset"
-              aria-label="Load streamset"
-            >
-              <span className="text-lg">⤒</span>
-            </button>
+          <div className="mt-auto flex flex-col gap-2">
             {sidebarOpen ? (
               <div className="text-gray-500 text-xs dark:text-neutral-400">
-                {lastStreamsetFileName ? `Last: ${lastStreamsetFileName}` : lastStreamsetId ? `Last: ${lastStreamsetId}` : "No load yet"}
+                <div>{lastStreamsetFileName ? `Last: ${lastStreamsetFileName}` : lastStreamsetId ? `Last: ${lastStreamsetId}` : "No load yet"}</div>
                 <div>HEN: {henId ?? "-"}</div>
               </div>
             ) : null}
+            <div className={`flex ${sidebarOpen ? "items-center gap-2" : "flex-col items-center gap-2"}`}>
+              <button
+                className={`w-10 h-10 flex items-center justify-center border rounded transition-colors ${buttonTone}`}
+                onClick={saveStreamset}
+                title="Save streamset"
+                aria-label="Save streamset"
+              >
+                <span className="text-lg">⤓</span>
+              </button>
+              <button
+                className={`w-10 h-10 flex items-center justify-center border rounded transition-colors ${buttonTone}`}
+                onClick={loadStreamset}
+                title="Load streamset"
+                aria-label="Load streamset"
+              >
+                <span className="text-lg">⤒</span>
+              </button>
+              <a
+                className={`w-10 h-10 flex items-center justify-center border rounded transition-colors ${buttonTone}`}
+                href={githubUrl}
+                target="_blank"
+                rel="noreferrer"
+                title="Open GitHub"
+                aria-label="Open GitHub"
+              >
+                <img className="w-5 h-5" src={theme === "dark" ? githubWhite : githubBlack} alt="GitHub" />
+              </a>
+              {sidebarOpen ? (
+                <button
+                  className={`w-10 h-10 flex items-center justify-center border rounded transition-colors ${buttonTone}`}
+                  onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+                  title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+                  aria-label="Toggle theme"
+                >
+                  <span className="text-lg">{themeIcon}</span>
+                </button>
+              ) : null}
+            </div>
             <input
               ref={streamsetFileRef}
               type="file"
@@ -937,7 +996,7 @@ export default function App() {
         )}
         {step === "streams" && (uiMsg || backendResp) ? (
           <div className={`border rounded p-3 mt-4 ${panelTone}`}>
-            <div className="font-semibold mb-1">Status</div>
+            <div className="font-semibold mb-1 ui-title">Status</div>
             {uiMsg ? <div className="text-sm mb-2">{uiMsg}</div> : null}
             {backendResp ? (
               <pre className="text-xs whitespace-pre-wrap">
@@ -966,7 +1025,7 @@ export default function App() {
               >
                 Back
               </button>
-              <div className="font-semibold text-lg">Match detail</div>
+              <div className="font-semibold ui-title">Match detail</div>
             </div>
             <div className="text-sm text-gray-600 dark:text-neutral-400 mb-4">
               {detailMatrix ? `Hot: ${detailMatrix.hot}  |  Cold: ${detailMatrix.cold}` : "Loading..."}
@@ -978,7 +1037,7 @@ export default function App() {
               <div className="text-sm text-red-600 dark:text-red-400">{detailError}</div>
             ) : detailMatrix ? (
               <div className="overflow-auto max-h-[75vh]">
-                <table className="text-xs border-collapse">
+                <table className="ui-body border-collapse">
                   <thead>
                     <tr>
                       <th className="text-center px-2 py-1 border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40"></th>
@@ -1069,7 +1128,7 @@ export default function App() {
               <div className="text-sm text-red-600 dark:text-red-400">{streamDetailError}</div>
             ) : streamDetail ? (
               <div className="overflow-auto max-h-[75vh]">
-                <table className="text-xs border-collapse">
+                <table className="ui-body border-collapse">
                   <thead>
                     <tr>
                       <th className="text-center px-2 py-1 border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40">k</th>

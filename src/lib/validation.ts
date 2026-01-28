@@ -224,7 +224,7 @@ export function validateStream(s: StreamRowUI): Issue[] {
   if (!s.useAdvancedHcoeff) {
     const cp = parseNum(s.Cp.value);
     if (cp === null) {
-      issues.push({ level: "warn", streamId: s.id, field: "Cp", message: "Cp is empty (Hcoeff will be zeros)" });
+      issues.push({ level: "error", streamId: s.id, field: "Cp", message: "Cp is required" });
     }
   } else {
     if (s.Hcoeff6.length !== 6) {

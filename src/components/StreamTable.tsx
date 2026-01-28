@@ -1,4 +1,4 @@
-﻿import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { StreamDetail } from "./StreamDetail";
 import { ScalarSpecInline } from "./ScalarSpecInline";
 import { applyKindCanonicalization } from "../lib/streamKind";
@@ -11,9 +11,6 @@ const kindOptions: StreamKind[] = [
   "Common",
   "IsothermalFixed",
   "IsothermalVariable",
-  "MVR",
-  "MHP",
-  "RankineCycle",
 ];
 const thermalOptions: ThermalKind[] = ["hot", "cold"];
 const flowUnits = ["mol/s", "kmol/h", "kmol/s"] as const;
@@ -54,21 +51,22 @@ export function StreamTable(props: {
   }, [visibleColumns]);
 
   const panelSurface = "bg-white text-neutral-900 dark:bg-neutral-950/60 dark:text-neutral-100";
-  const stickyBg = "bg-white dark:bg-neutral-950/60";
-  const headerBg = "bg-gray-50 dark:bg-neutral-900/60";
+  const stickyBg = "bg-white dark:bg-neutral-950";
+  const headerBg = "bg-gray-50 dark:bg-neutral-900";
   const borderTone = "border-gray-200 dark:border-neutral-800";
   const cellTone = "border-neutral-300 bg-white text-neutral-900 placeholder:text-gray-400 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-600";
   const summaryColMinWidthPx = 184;
   const cellPad = "px-[0.375rem] py-[0.45rem]";
   const colW = {
+    expand: "40px",
     name: "96px",
     type: "80px",
     kind: "120px",
-    actions: "120px",
+    actions: "80px",
   } as const;
   const fixedColsPx = (s: string) => (s.endsWith("rem") ? Number.parseFloat(s) * 16 : Number.parseFloat(s) || 0);
-  const fixedMinWidthPx = fixedColsPx(colW.name) + fixedColsPx(colW.type) + fixedColsPx(colW.kind) + fixedColsPx(colW.actions);
-  const tableMinWidthPx = fixedMinWidthPx + (3 + extraColumns.length) * summaryColMinWidthPx;
+  const fixedMinWidthPx = fixedColsPx(colW.expand) + fixedColsPx(colW.name) + fixedColsPx(colW.type) + fixedColsPx(colW.kind);
+  const tableMinWidthPx = fixedMinWidthPx + (3 + extraColumns.length) * summaryColMinWidthPx + fixedColsPx(colW.actions);
 
   function applySpecUpdate(s: StreamRowUI, key: "F" | "Tin" | "Tout", nextSpec: ScalarSpecUI): StreamRowUI {
     let spec = nextSpec;
@@ -94,6 +92,7 @@ export function StreamTable(props: {
         style={{ minWidth: `${tableMinWidthPx}px` }}
       >
         <colgroup>
+          <col style={{ width: colW.expand }} />
           <col style={{ width: colW.name }} />
           <col style={{ width: colW.type }} />
           <col style={{ width: colW.kind }} />
@@ -105,7 +104,8 @@ export function StreamTable(props: {
         </colgroup>
         <thead className={headerBg}>
           <tr className="text-left">
-            <th className={`${cellPad} sticky left-0 z-20 ${headerBg}`}>Name</th>
+            <th className={`${cellPad} sticky left-0 z-20 ${headerBg}`}></th>
+            <th className={`${cellPad} sticky left-0 z-20 ${headerBg}`} style={{ left: colW.expand }}>Name</th>
             <th className={`${cellPad} ${headerBg}`}>Type</th>
             <th className={`${cellPad} ${headerBg}`}>Kind</th>
             <th className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }}>F</th>
@@ -114,7 +114,7 @@ export function StreamTable(props: {
             {extraColumns.map((col) => (
               <th key={col.key} className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }}>{col.label}</th>
             ))}
-            <th className={`${cellPad} sticky right-0 z-20 ${headerBg}`}>Actions</th>
+            <th className={`${cellPad} ${headerBg}`}></th>
           </tr>
         </thead>
         <tbody>
@@ -126,6 +126,23 @@ export function StreamTable(props: {
               <Fragment key={s.id}>
                 <tr className={`${active ? activeRow : baseRow} align-top`}>
                   <td className={`${cellPad} sticky left-0 z-10 ${stickyBg} ${active ? activeRow : ""}`}>
+                    <button
+                      className="px-2 py-1 border rounded tone-button-muted"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpanded((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(s.id)) next.delete(s.id);
+                          else next.add(s.id);
+                          return next;
+                        });
+                      }}
+                      title={active ? "Collapse" : "Expand details"}
+                    >
+                      {active ? "▾" : "▸"}
+                    </button>
+                  </td>
+                  <td className={`${cellPad} sticky left-0 z-10 ${stickyBg} ${active ? activeRow : ""}`} style={{ left: colW.expand }}>
                     <input
                       className={`control-h w-full border rounded px-2 py-1 ${cellTone}`}
                       value={s.name}
@@ -206,23 +223,8 @@ export function StreamTable(props: {
                     </td>
                   ))}
 
-                  <td className={`${cellPad} sticky right-0 z-10 ${stickyBg} ${active ? activeRow : ""}`}>
+                  <td className={cellPad}>
                     <div className="flex items-center gap-2">
-                      <button
-                        className="px-2 py-1 border rounded tone-button-muted"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpanded((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(s.id)) next.delete(s.id);
-                            else next.add(s.id);
-                            return next;
-                          });
-                        }}
-                        title={active ? "Collapse" : "Expand details"}
-                      >
-                        {active ? "▾" : "▸"}
-                      </button>
                       <button
                         className="px-2 py-1 border rounded tone-button-muted"
                         onClick={(e) => {
@@ -253,7 +255,7 @@ export function StreamTable(props: {
                 </tr>
                 {active ? (
                   <tr className="bg-white dark:bg-neutral-950">
-                    <td className={`p-0 border-t ${borderTone}`} colSpan={7 + extraColumns.length}>
+                    <td className={`p-0 border-t ${borderTone}`} colSpan={8 + extraColumns.length}>
                       <div className="sticky left-0 w-full max-w-[calc(100vw-2rem)]">
                         <StreamDetail
                           stream={s}
@@ -269,7 +271,7 @@ export function StreamTable(props: {
           })}
           {streams.length === 0 ? (
             <tr>
-              <td className="p-3 text-gray-500 dark:text-neutral-400" colSpan={7 + extraColumns.length}>No streams. Add one.</td>
+              <td className="p-3 text-gray-500 dark:text-neutral-400" colSpan={8 + extraColumns.length}>No streams. Add one.</td>
             </tr>
           ) : null}
         </tbody>

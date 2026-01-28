@@ -205,7 +205,7 @@ export function StreamsStep({
       />
 
       <CollapsiblePanel
-        title="Advanced (IntervalConfig)"
+        title={<span className="ui-title">Interval Configuration</span>}
         open={intervalsOpen}
         onToggle={() => setIntervalsOpen((v) => !v)}
         className={panelTone}
@@ -335,11 +335,11 @@ export function StreamsStep({
       </CollapsiblePanel>
 
       <Panel className={`${panelTone} ${issues.length === 0 ? "tone-panel-green" : ""}`}>
-        <div className="font-semibold mb-2">Validation</div>
+        <div className="font-semibold mb-2 ui-title">Validation</div>
         {issues.length === 0 ? (
-          <div className="text-green-700 dark:text-green-400">No issues.</div>
+          <div className="ui-body text-green-700 dark:text-green-400">No issues.</div>
         ) : (
-          <div className="space-y-1">
+          <div className="ui-body space-y-1">
             {issues.slice(0, 30).map((it, idx) => (
               <div
                 key={idx}

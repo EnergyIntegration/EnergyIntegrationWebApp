@@ -115,7 +115,7 @@ export function ResultsStep({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 h-9">
         <div className="text-xl font-bold">Results</div>
       </div>
 
@@ -126,7 +126,7 @@ export function ResultsStep({
       ) : (
         <>
           <Panel className={panelTone}>
-            <div className="flex flex-wrap items-center gap-4 text-sm">
+            <div className="flex flex-wrap items-center gap-4 ui-body">
               <div><span className="font-semibold">Hot streams:</span> {resultHotOrder.length}</div>
               <div><span className="font-semibold">Cold streams:</span> {resultColdOrder.length}</div>
               {Number.isFinite(resultObjValue ?? NaN) ? (
@@ -136,11 +136,11 @@ export function ResultsStep({
           </Panel>
 
           <Panel className={panelTone}>
-            <div className="font-semibold mb-2">Solution Report</div>
+            <div className="font-semibold mb-2 ui-title">Solution Report</div>
             {solutionReportRows.length === 0 ? (
-              <div className="text-xs text-gray-500 dark:text-neutral-400">No solution report.</div>
+              <div className="ui-body text-gray-500 dark:text-neutral-400">No solution report.</div>
             ) : (
-              <table className="text-xs border-collapse w-full">
+              <table className="ui-body border-collapse w-full">
                 <thead>
                   <tr>
                     <th className="text-left px-2 py-1 border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40">Items</th>
@@ -167,11 +167,11 @@ export function ResultsStep({
           </Panel>
 
           <Panel className={panelTone}>
-            <div className="font-semibold mb-2">Economic Report</div>
+            <div className="font-semibold mb-2 ui-title">Economic Report</div>
             {!economicReport || economicReport.data.length === 0 ? (
-              <div className="text-xs text-gray-500 dark:text-neutral-400">No economic report.</div>
+              <div className="ui-body text-gray-500 dark:text-neutral-400">No economic report.</div>
             ) : (
-              <table className="text-xs border-collapse w-max">
+              <table className="ui-body border-collapse w-max">
                 <thead>
                   <tr>
                     <th className="px-2 py-1 border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40"></th>
@@ -210,9 +210,9 @@ export function ResultsStep({
           </Panel>
 
           <Panel className={panelTone}>
-            <div className="font-semibold mb-2">Match matrix</div>
+            <div className="font-semibold mb-2 ui-title">Match matrix</div>
             <div className="matrix-resize" onMouseLeave={onCellLeave}>
-              <table className="matrix-table text-xs border-collapse">
+              <table className="matrix-table ui-body border-collapse">
                 <thead>
                   <tr>
                     <th className="matrix-first-col text-left px-2 py-1 border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40"></th>

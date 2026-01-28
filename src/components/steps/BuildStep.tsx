@@ -35,7 +35,7 @@ export function BuildStep({
       </div>
 
       <Panel className={panelTone}>
-        <div className="font-semibold mb-2">HEN summary</div>
+        <div className="font-semibold mb-2 ui-title">HEN summary</div>
         <div className="text-gray-600 text-sm dark:text-neutral-400">
           This tab will show pinch, grid, buckets, and problem table stats.
         </div>
@@ -43,7 +43,7 @@ export function BuildStep({
 
       {henPlot ? (
         <Panel className={panelTone}>
-          <div className="font-semibold mb-2">Composite curve</div>
+          <div className="font-semibold mb-2 ui-title">Composite curve</div>
           <div className="w-full overflow-hidden">
             <PlotlyFigure fig={henPlot} theme={theme} />
           </div>

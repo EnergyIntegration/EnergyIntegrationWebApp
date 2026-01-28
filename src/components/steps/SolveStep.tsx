@@ -49,14 +49,15 @@ export function SolveStep({
     label: string,
     value: string,
     onChange: (value: string) => void,
-    opts: { width?: string; type?: string; placeholder?: string } = {}
+    opts: { width?: string; type?: string; placeholder?: string; disabled?: boolean } = {}
   ) =>
     field(
       label,
       <input
-        className={inputClass}
+        className={`${inputClass} ${opts.disabled ? "opacity-60 cursor-not-allowed" : ""}`}
         type={opts.type ?? "text"}
         value={value}
+        disabled={opts.disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder={opts.placeholder}
       />,
@@ -67,18 +68,23 @@ export function SolveStep({
     value: string,
     onChange: (value: string) => void,
     options: string[],
-    width = "w-[180px]"
+    opts: { width?: string; disabled?: boolean } = {}
   ) =>
     field(
       label,
-      <select className={inputClass} value={value} onChange={(e) => onChange(e.target.value)}>
+      <select
+        className={`${inputClass} ${opts.disabled ? "opacity-60 cursor-not-allowed" : ""}`}
+        value={value}
+        disabled={opts.disabled}
+        onChange={(e) => onChange(e.target.value)}
+      >
         {options.map((opt) => (
           <option key={opt} value={opt}>
             {opt}
           </option>
         ))}
       </select>,
-      width
+      opts.width
     );
   const checkField = (
     label: string,
@@ -106,7 +112,7 @@ export function SolveStep({
       </div>
 
       <CollapsiblePanel
-        title="Optimization settings"
+        title={<span className="ui-title">Optimization settings</span>}
         open={optOpen}
         onToggle={() => setOptOpen((v) => !v)}
         className={panelTone}
@@ -128,36 +134,36 @@ export function SolveStep({
         </div>
 
         <div>
-          <div className="font-semibold mb-2">LMTD</div>
+          <div className="font-semibold mb-2">LMTD <span className="text-xs font-normal text-gray-500 dark:text-neutral-400">(unused)</span></div>
           <div className="flex flex-wrap gap-3">
             {selectField("method", optConfig.lmtd.method, (v) => setGroup("lmtd", "method", v),
-              ["accurate", "harmonic_approx", "log_shifted", "log_smooth_eps",])}
-            {textField("ε (K)", optConfig.lmtd.eps, (v) => setGroup("lmtd", "eps", v))}
-            {textField("minΔT (K)", optConfig.lmtd.minDeltaT, (v) => setGroup("lmtd", "minDeltaT", v))}
-            {textField("maxΔT (K)", optConfig.lmtd.maxDeltaT, (v) => setGroup("lmtd", "maxDeltaT", v))}
+              ["accurate", "harmonic_approx", "log_shifted", "log_smooth_eps",], { disabled: true })}
+            {textField("ε (K)", optConfig.lmtd.eps, (v) => setGroup("lmtd", "eps", v), { disabled: true })}
+            {textField("minΔT (K)", optConfig.lmtd.minDeltaT, (v) => setGroup("lmtd", "minDeltaT", v), { disabled: true })}
+            {textField("maxΔT (K)", optConfig.lmtd.maxDeltaT, (v) => setGroup("lmtd", "maxDeltaT", v), { disabled: true })}
           </div>
         </div>
 
         <div>
-          <div className="font-semibold mb-2">PWL</div>
+          <div className="font-semibold mb-2">PWL <span className="text-xs font-normal text-gray-500 dark:text-neutral-400">(unused)</span></div>
           <div className="flex flex-wrap gap-3">
             {selectField("method", optConfig.pwl.method, (v) => setGroup("pwl", "method", v),
-              ["none", "lin", "log", "log_smooth",])}
-            {textField("nsegs", optConfig.pwl.nsegs, (v) => setGroup("pwl", "nsegs", v))}
-            {textField("min_area", optConfig.pwl.min_area, (v) => setGroup("pwl", "min_area", v))}
-            {textField("max_area", optConfig.pwl.max_area, (v) => setGroup("pwl", "max_area", v))}
-            {textField("include_zero", optConfig.pwl.include_zero, (v) => setGroup("pwl", "include_zero", v))}
+              ["none", "lin", "log", "log_smooth",], { disabled: true })}
+            {textField("nsegs", optConfig.pwl.nsegs, (v) => setGroup("pwl", "nsegs", v), { disabled: true })}
+            {textField("min_area", optConfig.pwl.min_area, (v) => setGroup("pwl", "min_area", v), { disabled: true })}
+            {textField("max_area", optConfig.pwl.max_area, (v) => setGroup("pwl", "max_area", v), { disabled: true })}
+            {textField("include_zero", optConfig.pwl.include_zero, (v) => setGroup("pwl", "include_zero", v), { disabled: true })}
           </div>
         </div>
 
         <div>
-          <div className="font-semibold mb-2">Scaling</div>
+          <div className="font-semibold mb-2">Scaling <span className="text-xs font-normal text-gray-500 dark:text-neutral-400">(unused)</span></div>
           <div className="flex flex-wrap gap-3">
-            {textField("Q", optConfig.scaling.Q, (v) => setGroup("scaling", "Q", v))}
-            {textField("A", optConfig.scaling.A, (v) => setGroup("scaling", "A", v))}
-            {textField("ΔT", optConfig.scaling.DeltaT, (v) => setGroup("scaling", "DeltaT", v))}
-            {textField("LMTD", optConfig.scaling.LMTD, (v) => setGroup("scaling", "LMTD", v))}
-            {textField("cost", optConfig.scaling.cost, (v) => setGroup("scaling", "cost", v))}
+            {textField("Q", optConfig.scaling.Q, (v) => setGroup("scaling", "Q", v), { disabled: true })}
+            {textField("A", optConfig.scaling.A, (v) => setGroup("scaling", "A", v), { disabled: true })}
+            {textField("ΔT", optConfig.scaling.DeltaT, (v) => setGroup("scaling", "DeltaT", v), { disabled: true })}
+            {textField("LMTD", optConfig.scaling.LMTD, (v) => setGroup("scaling", "LMTD", v), { disabled: true })}
+            {textField("cost", optConfig.scaling.cost, (v) => setGroup("scaling", "cost", v), { disabled: true })}
           </div>
         </div>
 
@@ -180,7 +186,7 @@ export function SolveStep({
 
       <Panel className="tone-panel-red">
         <div className="flex items-center gap-2 mb-2">
-          <div className="font-semibold">Console</div>
+          <div className="font-semibold ui-title">Console</div>
           <div className={consoleConnected ? "text-xs text-emerald-600" : "text-xs text-gray-500 dark:text-neutral-400"}>
             {consoleConnected ? "connected" : "disconnected"}
           </div>
