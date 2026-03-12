@@ -10,7 +10,7 @@ export type PricingBasis = "Energy" | "Power";
 
 export type ScalarMode = "fixed" | "range";
 
-/** 用于 UI 的“标量/区间”输入。允许为空字符串表示未填写。 */
+/** Scalar/range input used by the UI. Empty strings mean the field is not filled. */
 export interface ScalarSpecUI {
   mode: ScalarMode;
   unit: string;
@@ -21,12 +21,12 @@ export interface ScalarSpecUI {
 
 export interface UnitNumberUI {
   unit: string;
-  value: string; // 允许空
+  value: string; // empty is allowed
 }
 
 export interface StreamRowUI {
-  id: string;          // 前端内部唯一ID
-  name: string;        // 不含冒号，例如 "h1"
+  id: string;          // frontend-internal unique ID
+  name: string;        // no colon, e.g. "h1"
   thermal: ThermalKind;
   kind: StreamKind;
 
@@ -36,11 +36,11 @@ export interface StreamRowUI {
   Pin: ScalarSpecUI;    // pressure
   Pout: ScalarSpecUI;   // pressure
 
-  fracText: string;     // "0.5,0.5" 这种输入
+  fracText: string;     // "0.5,0.5" style input
   // thermophysical & costing
   useAdvancedHcoeff: boolean;
-  Cp: UnitNumberUI;     // 简化模型: constant Cp -> Hcoeff=(0,Cp,0,0,0,0)
-  Hcoeff6: string[];    // advanced: 6项
+  Cp: UnitNumberUI;     // simplified model: constant Cp -> Hcoeff=(0,Cp,0,0,0,0)
+  Hcoeff6: string[];    // advanced: 6 terms
   Hvap: UnitNumberUI;
   HTC: UnitNumberUI;
   Tcont: UnitNumberUI;

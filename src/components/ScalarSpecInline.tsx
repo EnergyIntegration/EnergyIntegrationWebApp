@@ -35,11 +35,14 @@ export function ScalarSpecInline(props: {
   const fieldDisabledClass = disabled ? "cursor-not-allowed opacity-80" : "";
 
   const icon = spec.mode === "fixed" ? "≡" : "↔";
+  const switchHint = spec.mode === "fixed"
+    ? "Click to switch to range input."
+    : "Click to switch to single-value input.";
   const modeTitle = disabled
     ? spec.mode === "fixed" ? "Fixed" : "Range"
     : lockMode
       ? `${spec.mode === "fixed" ? "Fixed" : "Range"} (locked)`
-      : `${spec.mode === "fixed" ? "Fixed" : "Range"} (click to change)`;
+      : switchHint;
 
   const gridCols = spec.mode === "fixed"
     ? (showModeToggle ? "grid-cols-[24px_minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto]")

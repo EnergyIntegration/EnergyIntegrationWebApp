@@ -5,6 +5,7 @@ import type { Issue } from "../../lib/validation";
 import type { IntervalsConfigUI, StreamRowUI } from "../../types/stream";
 import type { Theme } from "../../types/theme";
 import { CollapsiblePanel } from "../ui/CollapsiblePanel";
+import { AsyncActionButton } from "../ui/AsyncActionButton";
 import { Panel } from "../ui/Panel";
 
 type StreamsStepProps = {
@@ -20,6 +21,7 @@ type StreamsStepProps = {
   onResetIntervals: () => void;
   onAddStream: (thermal: "hot" | "cold") => void;
   onBuildHEN: () => void;
+  isBuildingHEN: boolean;
   onUpdateStream: (id: string, next: StreamRowUI) => void;
   onDeleteStream: (id: string) => void;
   onDuplicateStream: (id: string) => void;
@@ -42,6 +44,7 @@ export function StreamsStep({
   onResetIntervals,
   onAddStream,
   onBuildHEN,
+  isBuildingHEN,
   onUpdateStream,
   onDeleteStream,
   onDuplicateStream,
@@ -115,8 +118,8 @@ export function StreamsStep({
   );
   const setRoot = (key: keyof IntervalsConfigUI, value: string | boolean) =>
     setIntervalsConfig((p) => ({ ...p, [key]: value }));
-  const setMvr = (key: keyof IntervalsConfigUI["mvr_config"], value: string) =>
-    setIntervalsConfig((p) => ({ ...p, mvr_config: { ...p.mvr_config, [key]: value } }));
+  // const setMvr = (key: keyof IntervalsConfigUI["mvr_config"], value: string) =>
+  //   setIntervalsConfig((p) => ({ ...p, mvr_config: { ...p.mvr_config, [key]: value } }));
   const addForbidden = () =>
     setIntervalsConfig((p) => ({
       ...p,
@@ -171,14 +174,17 @@ export function StreamsStep({
           + Cold
         </button>
 
-        <button
-          className={`px-3 py-1.5 border rounded transition-colors ml-auto ${buttonTone} tone-button-primary ${hasError ? "opacity-50 cursor-not-allowed" : ""}`}
+        <AsyncActionButton
+          className={`ml-auto ${buttonTone} tone-button-primary`}
           onClick={onBuildHEN}
-          disabled={hasError}
-          title={hasError ? "Fix errors before building." : "Build HEN"}
-        >
-          Build HEN
-        </button>
+          idleLabel="Build HEN"
+          loadingLabel="Building..."
+          isLoading={isBuildingHEN}
+          isDisabled={hasError}
+          idleTitle="Build HEN"
+          disabledTitle="Fix errors before building."
+          loadingTitle="Building HEN..."
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -246,6 +252,7 @@ export function StreamsStep({
           </div>
         </div>
 
+        {/*
         <div>
           <div className="font-semibold mb-2">MVR</div>
           <div className="flex flex-wrap gap-3">
@@ -257,6 +264,7 @@ export function StreamsStep({
             {textField("mechanical_efficiency", intervalsConfig.mvr_config.mechanical_efficiency, (v) => setMvr("mechanical_efficiency", v))}
           </div>
         </div>
+        */}
 
         <div>
           <div className="font-semibold mb-2">Forbidden match</div>
