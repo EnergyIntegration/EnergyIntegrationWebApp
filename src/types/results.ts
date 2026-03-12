@@ -47,5 +47,30 @@ export type StreamDetail = {
   t_lower: number[];
 };
 
+export type BuildInspectSummary = {
+  n_streams: number;
+  n_hot: number;
+  n_cold: number;
+  n_iso: number;
+  n_mvr: number;
+  n_rk: number;
+  n_mhp: number;
+  method_tgrid: string;
+  method_mvr: string;
+  pinch_K: number[];
+  t_nodes_K: number[];
+};
+
+export type BuildInspectTable = {
+  columns: string[];
+  rows: number[][];
+};
+
+export type BuildInspectPayload = {
+  summary: BuildInspectSummary;
+  problem_table: BuildInspectTable;
+  composite_curve: BuildInspectTable;
+};
+
 export const STREAM_UNITS = ["°C", "K", "°F", "°R"] as const;
 export type StreamUnit = (typeof STREAM_UNITS)[number];

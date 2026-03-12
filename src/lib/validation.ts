@@ -145,7 +145,7 @@ export function validateStream(s: StreamRowUI): Issue[] {
   const Tout = minmaxOfSpec(s.Tout);
 
   if (s.kind === "IsothermalFixed" || s.kind === "IsothermalVariable") {
-    // Require Tin == Tout (we only compare min/max here; UI会同步两者)
+    // Require Tin == Tout (we only compare min/max here; the UI keeps both in sync)
     if (!Tin || !Tout) {
       issues.push({ level: "error", streamId: s.id, field: "Tin/Tout", message: "isothermal requires Tin and Tout" });
     } else {

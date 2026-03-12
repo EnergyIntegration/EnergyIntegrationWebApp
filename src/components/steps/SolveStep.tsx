@@ -1,10 +1,12 @@
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from "react";
 import type { OptimizationConfigUI } from "../../types/stream";
 import { CollapsiblePanel } from "../ui/CollapsiblePanel";
+import { AsyncActionButton } from "../ui/AsyncActionButton";
 import { Panel } from "../ui/Panel";
 
 type SolveStepProps = {
   henReady: boolean;
+  isSolving: boolean;
   onSolve: () => void;
   buttonTone: string;
   panelTone: string;
@@ -20,6 +22,7 @@ type SolveStepProps = {
 
 export function SolveStep({
   henReady,
+  isSolving,
   onSolve,
   buttonTone,
   panelTone,
@@ -100,15 +103,18 @@ export function SolveStep({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="text-xl font-bold">Solve (MILP)</div>
-        <button
-          className={`px-3 py-1.5 border rounded transition-colors ml-auto ${buttonTone} tone-button-primary ${henReady ? "" : "opacity-50 cursor-not-allowed"}`}
+        <div className="text-xl font-bold">Solve</div>
+        <AsyncActionButton
+          className={`ml-auto ${buttonTone} tone-button-primary`}
           onClick={onSolve}
-          title="Solve"
-          disabled={!henReady}
-        >
-          Solve
-        </button>
+          idleLabel="Solve"
+          loadingLabel="Solving..."
+          isLoading={isSolving}
+          isDisabled={!henReady}
+          idleTitle="Solve"
+          disabledTitle="Build HEN first."
+          loadingTitle="Solving..."
+        />
       </div>
 
       <CollapsiblePanel
@@ -184,7 +190,7 @@ export function SolveStep({
         </div>
       </CollapsiblePanel>
 
-      <Panel className="tone-panel-red">
+      <Panel className={panelTone}>
         <div className="flex items-center gap-2 mb-2">
           <div className="font-semibold ui-title">Console</div>
           <div className={consoleConnected ? "text-xs text-emerald-600" : "text-xs text-gray-500 dark:text-neutral-400"}>

@@ -32,12 +32,12 @@ export function minmaxOfSpec(spec: ScalarSpecUI): { min: number; max: number } |
 }
 
 /* ------------------ unit conversions to SI ------------------ */
-/* 温度: K；压强: Pa；流量: mol/s；ΔT: K；HTC: W/(m^2*K)；Hvap: J/mol；Cp: J/(mol*K) */
+/* Temperature: K; pressure: Pa; flow rate: mol/s; ΔT: K; HTC: W/(m^2*K); Hvap: J/mol; Cp: J/(mol*K) */
 
 export function toSI_T(v: number, unit: string): number {
   if (unit === "K") return v;
   if (unit === "°C") return v + 273.15;
-  return v; // 默认当作 K
+  return v; // default to K
 }
 
 export function toSI_dT(v: number, unit: string): number {
@@ -49,7 +49,7 @@ export function toSI_flow(v: number, unit: string): number {
   if (unit === "mol/s") return v;
   if (unit === "kmol/h") return (v * 1000.0) / 3600.0;
   if (unit === "kmol/s") return v * 1000.0;
-  return v; // 默认 mol/s
+  return v; // default to mol/s
 }
 
 export function toSI_pressure(v: number, unit: string): number {
@@ -57,7 +57,7 @@ export function toSI_pressure(v: number, unit: string): number {
   if (unit === "kPa") return v * 1e3;
   if (unit === "MPa") return v * 1e6;
   if (unit === "bar") return v * 1e5;
-  return v; // 默认 Pa
+  return v; // default to Pa
 }
 
 export function toSI_Cp(v: number, unit: string): number {

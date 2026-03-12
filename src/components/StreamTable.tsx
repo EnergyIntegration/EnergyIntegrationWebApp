@@ -13,6 +13,15 @@ const kindOptions: StreamKind[] = [
   "IsothermalVariable",
 ];
 const thermalOptions: ThermalKind[] = ["hot", "cold"];
+const thermalHints: Record<ThermalKind, string> = {
+  hot: "Hot stream: inlet temperature is greater than or equal to outlet temperature, and the stream releases heat.",
+  cold: "Cold stream: inlet temperature is less than or equal to outlet temperature, and the stream takes in heat.",
+};
+const kindHints: Partial<Record<StreamKind, string>> = {
+  Common: "Inlet and outlet temperatures are not equal.",
+  IsothermalFixed: "Inlet and outlet temperatures are equal, and both are single values.",
+  IsothermalVariable: "Inlet and outlet temperatures are equal, and both are ranges.",
+};
 const flowUnits = ["mol/s", "kmol/h", "kmol/s"] as const;
 const tempUnits = ["°C", "K"] as const;
 export type ColumnKey = ExtraColumnKey;
@@ -37,7 +46,7 @@ export function StreamTable(props: {
   const { streams, onUpdate, onDelete, onDuplicate, theme, visibleColumns } = props;
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  // 清理已删除行的展开状态
+  // Clean up expansion state for rows that were deleted.
   useEffect(() => {
     setExpanded((prev) => {
       const next = new Set<string>();
@@ -105,12 +114,12 @@ export function StreamTable(props: {
         <thead className={headerBg}>
           <tr className="text-left">
             <th className={`${cellPad} sticky left-0 z-20 ${headerBg}`}></th>
-            <th className={`${cellPad} sticky left-0 z-20 ${headerBg}`} style={{ left: colW.expand }}>Name</th>
-            <th className={`${cellPad} ${headerBg}`}>Type</th>
-            <th className={`${cellPad} ${headerBg}`}>Kind</th>
-            <th className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }}>F</th>
-            <th className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }}>T<sub>in</sub></th>
-            <th className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }}>T<sub>out</sub></th>
+            <th className={`${cellPad} sticky left-0 z-20 ${headerBg}`} style={{ left: colW.expand }} title="Stream name">Name</th>
+            <th className={`${cellPad} ${headerBg}`} title="Stream thermal type">Type</th>
+            <th className={`${cellPad} ${headerBg}`} title="Stream kind">Kind</th>
+            <th className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }} title="Stream flow rate">F</th>
+            <th className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }} title="Stream supply temperature">T<sub>in</sub></th>
+            <th className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }} title="Stream target temperature">T<sub>out</sub></th>
             {extraColumns.map((col) => (
               <th key={col.key} className={`${cellPad} ${headerBg}`} style={{ minWidth: `${summaryColMinWidthPx}px` }}>{col.label}</th>
             ))}
@@ -156,13 +165,14 @@ export function StreamTable(props: {
                     <select
                       className={`control-h w-full border rounded pl-1 pr-0.8 py-1 ${cellTone}`}
                       value={s.thermal}
+                      title={thermalHints[s.thermal]}
                       onChange={(e) => {
                         const thermal = e.target.value as ThermalKind;
                         onUpdate(s.id, { ...s, thermal });
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {thermalOptions.map((t) => <option value={t} key={t}>{t}</option>)}
+                      {thermalOptions.map((t) => <option value={t} key={t} title={thermalHints[t]}>{t}</option>)}
                     </select>
                   </td>
 
@@ -170,13 +180,14 @@ export function StreamTable(props: {
                     <select
                       className={`control-h w-full border rounded pl-1 pr-0.8 py-1 ${cellTone}`}
                       value={s.kind}
+                      title={kindHints[s.kind]}
                       onChange={(e) => {
                         const kind = e.target.value as StreamKind;
                         onUpdate(s.id, applyKindCanonicalization(s, kind));
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {kindOptions.map((k) => <option value={k} key={k}>{k}</option>)}
+                      {kindOptions.map((k) => <option value={k} key={k} title={kindHints[k]}>{k}</option>)}
                     </select>
                   </td>
 

@@ -132,7 +132,7 @@ export function buildPayloadSI(streams: StreamRowUI[], intervalsConfig?: Interva
         h6 = [0, cpSI, 0, 0, 0, 0];
       } else {
         const a = s.Hcoeff6.map((x) => parseNum(x) ?? 0);
-        // 这里默认用户已经输入的是 SI 量纲下的数值
+        // Assume the user already entered values in SI units.
         h6 = [a[0], a[1], a[2], a[3], a[4], a[5]];
       }
 
@@ -140,7 +140,7 @@ export function buildPayloadSI(streams: StreamRowUI[], intervalsConfig?: Interva
       const HTC = toSI_unitNumber(s.HTC, toSI_HTC) ?? 0;
       const Tcont = toSI_unitNumber(s.Tcont, toSI_dT) ?? 0;
 
-      // cost: 目前不强制单位解析，默认直接数值传给 Julia (你内部是 unitfactor(cost))
+      // cost: do not enforce unit parsing yet; pass numeric value directly to Julia (internally unitfactor(cost))
       const cost = parseNum(s.cost.value) ?? 0;
 
       const min_TD = toSI_unitNumber(s.min_TD, toSI_dT) ?? 0;
@@ -148,7 +148,7 @@ export function buildPayloadSI(streams: StreamRowUI[], intervalsConfig?: Interva
       const subcooling_deg = toSI_unitNumber(s.subcooling_deg, toSI_dT) ?? 0;
 
       if (F === null || Tin === null || Tout === null) {
-        // 让后端再报错; 这里先给占位
+        // Let the backend raise validation errors; use placeholders here for now.
       }
 
       return {

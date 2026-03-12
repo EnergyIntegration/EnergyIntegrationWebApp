@@ -14,6 +14,7 @@ import githubBlack from "./assets/GitHub_Invertocat_Black.svg";
 import githubWhite from "./assets/GitHub_Invertocat_White.svg";
 import type { PlotlyFigurePayload } from "./types/plotly";
 import type {
+  BuildInspectPayload,
   CellRef,
   DetailMatrix,
   EconomicReport,
@@ -49,6 +50,51 @@ function toBackendResp(r: Response, body: unknown): { status: number; ok: boolea
     };
   }
   return { status: r.status, ok: r.ok, body: nextBody };
+}
+
+function asNumberArray(x: unknown): number[] {
+  if (!Array.isArray(x)) return [];
+  return x.map((v) => Number(v));
+}
+
+function asNumberMatrix(x: unknown): number[][] {
+  if (!Array.isArray(x)) return [];
+  return x.map((row) => (Array.isArray(row) ? row.map((v) => Number(v)) : []));
+}
+
+function normalizeBuildInspect(x: unknown): BuildInspectPayload | null {
+  if (!x || typeof x !== "object") return null;
+  const raw = x as any;
+  const summary = raw.summary;
+  const problem = raw.problem_table;
+  const composite = raw.composite_curve;
+  if (!summary || typeof summary !== "object") return null;
+  if (!problem || typeof problem !== "object") return null;
+  if (!composite || typeof composite !== "object") return null;
+
+  return {
+    summary: {
+      n_streams: Number(summary.n_streams ?? 0),
+      n_hot: Number(summary.n_hot ?? 0),
+      n_cold: Number(summary.n_cold ?? 0),
+      n_iso: Number(summary.n_iso ?? 0),
+      n_mvr: Number(summary.n_mvr ?? 0),
+      n_rk: Number(summary.n_rk ?? 0),
+      n_mhp: Number(summary.n_mhp ?? 0),
+      method_tgrid: String(summary.method_tgrid ?? ""),
+      method_mvr: String(summary.method_mvr ?? ""),
+      pinch_K: asNumberArray(summary.pinch_K),
+      t_nodes_K: asNumberArray(summary.t_nodes_K),
+    },
+    problem_table: {
+      columns: Array.isArray(problem.columns) ? problem.columns.map((c: unknown) => String(c)) : [],
+      rows: asNumberMatrix(problem.rows),
+    },
+    composite_curve: {
+      columns: Array.isArray(composite.columns) ? composite.columns.map((c: unknown) => String(c)) : [],
+      rows: asNumberMatrix(composite.rows),
+    },
+  };
 }
 
 const API_KEY_STORAGE = "ei-api-key";
@@ -283,7 +329,10 @@ export default function App() {
   const [uiMsg, setUiMsg] = useState<string>("");
   const [backendResp, setBackendResp] = useState<{ status: number; ok: boolean; body: unknown } | null>(null);
   const [henPlot, setHenPlot] = useState<PlotlyFigurePayload | null>(null);
+  const [buildInspect, setBuildInspect] = useState<BuildInspectPayload | null>(null);
   const [henReady, setHenReady] = useState<boolean>(false);
+  const [isBuildingHEN, setIsBuildingHEN] = useState<boolean>(false);
+  const [isSolving, setIsSolving] = useState<boolean>(false);
   const [resultsReady, setResultsReady] = useState<boolean>(false);
   const [henId, setHenId] = useState<string | null>(null);
   const [resultHotOrder, setResultHotOrder] = useState<string[]>([]);
@@ -316,6 +365,8 @@ export default function App() {
   const consoleBoxRef = useRef<HTMLDivElement>(null);
   const consoleEsRef = useRef<EventSource | null>(null);
   const streamsetFileRef = useRef<HTMLInputElement | null>(null);
+  const buildHenPendingRef = useRef(false);
+  const solvePendingRef = useRef(false);
   const dragRef = useRef<{ axis: "hot" | "cold"; index: number } | null>(null);
   const hoverKeyRef = useRef<string | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
@@ -559,6 +610,8 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    setHenPlot(null);
+    setBuildInspect(null);
     setHenReady(false);
     setResultsReady(false);
     setHenId(null);
@@ -639,14 +692,17 @@ export default function App() {
   }, [tooltipCell, tooltipMatrix, tooltipLoading, tooltipError]);
 
   async function buildHEN() {
-    setUiMsg("");
-    setBackendResp(null);
-    setHenPlot(null);
-    setHenReady(false);
-    setHenId(null);
-    const payload = buildPayloadSI(streams, intervalsConfig);
-
+    if (buildHenPendingRef.current) return;
+    buildHenPendingRef.current = true;
+    setIsBuildingHEN(true);
     try {
+      setUiMsg("");
+      setBackendResp(null);
+      setHenPlot(null);
+      setBuildInspect(null);
+      setHenReady(false);
+      setHenId(null);
+      const payload = buildPayloadSI(streams, intervalsConfig);
       const { r, body } = await apiFetch("/api/streams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -658,75 +714,87 @@ export default function App() {
         const nextHenId = String((body as any)?.hen_id ?? "");
         setHenId(nextHenId || null);
         setHenPlot(fig && typeof fig === "object" ? (fig as PlotlyFigurePayload) : null);
+        setBuildInspect(normalizeBuildInspect((body as any)?.build_inspect));
         setHenReady(true);
         setStep("build");
       }
     } catch (e: any) {
       setBackendResp({ status: 0, ok: false, body: { message: "Request failed", error: String(e) } });
+    } finally {
+      buildHenPendingRef.current = false;
+      setIsBuildingHEN(false);
     }
   }
 
   async function solveMILP() {
-    setUiMsg("");
-    setBackendResp(null);
-
-    if (!henReady) {
-      setUiMsg("Build HEN first.");
-      return;
-    }
-    if (!henId) {
-      setBackendResp({ status: 400, ok: false, body: { message: "hen_id is required. Build HEN first to get hen_id." } });
-      return;
-    }
-
+    if (solvePendingRef.current) return;
+    solvePendingRef.current = true;
+    setIsSolving(true);
     try {
-      const { r, body } = await apiFetch("/api/solve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hen_id: henId }),
-      }, { promptOn401: false });
-      setBackendResp(toBackendResp(r, body));
-      if (r.ok && body && typeof body === "object" && (body as any).ok) {
-        setUiMsg("Solve completed.");
-        detailCacheRef.current.clear();
-        streamDetailCacheRef.current.clear();
-        const hot = Array.isArray((body as any).hot_names) ? (body as any).hot_names.map((x: any) => String(x)) : [];
-        const cold = Array.isArray((body as any).cold_names) ? (body as any).cold_names.map((x: any) => String(x)) : [];
-        const edgesRaw = Array.isArray((body as any).edges) ? (body as any).edges : [];
-        const edges: ResultEdge[] = edgesRaw
-          .map((x: any) => ({
-            hot: String(x?.hot ?? ""),
-            cold: String(x?.cold ?? ""),
-            q_total: Number(x?.q_total ?? 0),
-          }))
-          .filter((x: ResultEdge) => x.hot && x.cold);
+      setUiMsg("");
+      setBackendResp(null);
 
-        setResultHotOrder(hot);
-        setResultColdOrder(cold);
-        setResultEdges(edges);
-        setResultObjValue(Number((body as any).obj_value ?? NaN));
-        const reportRaw = (body as any).solution_report;
-        setSolutionReport(reportRaw && typeof reportRaw === "object" ? (reportRaw as SolutionReport) : null);
-        const econRaw = (body as any).economic_report;
-        if (econRaw && typeof econRaw === "object") {
-          const column_labels = Array.isArray((econRaw as any).column_labels)
-            ? (econRaw as any).column_labels.map((x: any) => String(x))
-            : [];
-          const row_labels = Array.isArray((econRaw as any).row_labels)
-            ? (econRaw as any).row_labels.map((x: any) => String(x))
-            : [];
-          const data = Array.isArray((econRaw as any).data)
-            ? (econRaw as any).data.map((row: any) => (Array.isArray(row) ? row.map((v: any) => String(v)) : []))
-            : [];
-          setEconomicReport({ column_labels, row_labels, data });
-        } else {
-          setEconomicReport(null);
-        }
-        setResultsReady(true);
-        setStep("results");
+      if (!henReady) {
+        setUiMsg("Build HEN first.");
+        return;
       }
-    } catch (e: any) {
-      setBackendResp({ status: 0, ok: false, body: { message: "Request failed", error: String(e) } });
+      if (!henId) {
+        setBackendResp({ status: 400, ok: false, body: { message: "hen_id is required. Build HEN first to get hen_id." } });
+        return;
+      }
+
+      try {
+        const { r, body } = await apiFetch("/api/solve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hen_id: henId }),
+        }, { promptOn401: false });
+        setBackendResp(toBackendResp(r, body));
+        if (r.ok && body && typeof body === "object" && (body as any).ok) {
+          setUiMsg("Solve completed.");
+          detailCacheRef.current.clear();
+          streamDetailCacheRef.current.clear();
+          const hot = Array.isArray((body as any).hot_names) ? (body as any).hot_names.map((x: any) => String(x)) : [];
+          const cold = Array.isArray((body as any).cold_names) ? (body as any).cold_names.map((x: any) => String(x)) : [];
+          const edgesRaw = Array.isArray((body as any).edges) ? (body as any).edges : [];
+          const edges: ResultEdge[] = edgesRaw
+            .map((x: any) => ({
+              hot: String(x?.hot ?? ""),
+              cold: String(x?.cold ?? ""),
+              q_total: Number(x?.q_total ?? 0),
+            }))
+            .filter((x: ResultEdge) => x.hot && x.cold);
+
+          setResultHotOrder(hot);
+          setResultColdOrder(cold);
+          setResultEdges(edges);
+          setResultObjValue(Number((body as any).obj_value ?? NaN));
+          const reportRaw = (body as any).solution_report;
+          setSolutionReport(reportRaw && typeof reportRaw === "object" ? (reportRaw as SolutionReport) : null);
+          const econRaw = (body as any).economic_report;
+          if (econRaw && typeof econRaw === "object") {
+            const column_labels = Array.isArray((econRaw as any).column_labels)
+              ? (econRaw as any).column_labels.map((x: any) => String(x))
+              : [];
+            const row_labels = Array.isArray((econRaw as any).row_labels)
+              ? (econRaw as any).row_labels.map((x: any) => String(x))
+              : [];
+            const data = Array.isArray((econRaw as any).data)
+              ? (econRaw as any).data.map((row: any) => (Array.isArray(row) ? row.map((v: any) => String(v)) : []))
+              : [];
+            setEconomicReport({ column_labels, row_labels, data });
+          } else {
+            setEconomicReport(null);
+          }
+          setResultsReady(true);
+          setStep("results");
+        }
+      } catch (e: any) {
+        setBackendResp({ status: 0, ok: false, body: { message: "Request failed", error: String(e) } });
+      }
+    } finally {
+      solvePendingRef.current = false;
+      setIsSolving(false);
     }
   }
 
@@ -932,6 +1000,7 @@ export default function App() {
             onResetIntervals={() => setIntervalsConfig(defaultIntervalsConfigUI())}
             onAddStream={addStream}
             onBuildHEN={buildHEN}
+            isBuildingHEN={isBuildingHEN}
             onUpdateStream={updateStream}
             onDeleteStream={deleteStream}
             onDuplicateStream={duplicateStream}
@@ -944,14 +1013,17 @@ export default function App() {
           <BuildStep
             hasError={hasError}
             onBuildHEN={buildHEN}
+            isBuildingHEN={isBuildingHEN}
             buttonTone={buttonTone}
             panelTone={panelTone}
             henPlot={henPlot}
+            buildInspect={buildInspect}
             theme={theme}
           />
         ) : step === "solve" ? (
           <SolveStep
             henReady={henReady}
+            isSolving={isSolving}
             onSolve={solveMILP}
             buttonTone={buttonTone}
             panelTone={panelTone}

@@ -130,7 +130,7 @@ export function StreamDetail(props: {
 
             {!stream.useAdvancedHcoeff ? (
               unitNumberInline(
-                "Cp (used as Hcoeff=(0,Cp,0,0,0,0))",
+                "Cp (molar heat capacity at constant pressure)",
                 stream.Cp,
                 cpUnits,
                 (u) => onChange({ ...stream, Cp: u }),
@@ -139,7 +139,7 @@ export function StreamDetail(props: {
               )
             ) : (
               <div className="space-y-2">
-                <div className={`text-sm ${mutedText}`}>Hcoeff6 (SI assumed). a1 is typically Cp.</div>
+                <div className={`text-sm ${mutedText}`}>Hcoeff6 (SI assumed). The second input is Cp.</div>
                 <div className="grid grid-cols-3 gap-2">
                   {stream.Hcoeff6.map((v, i) => (
                     <input
@@ -165,7 +165,7 @@ export function StreamDetail(props: {
               <div className={`text-sm ${mutedText}`}>Hvap is used for isothermal streams only.</div>
             )}
 
-            {unitNumberInline("HTC", stream.HTC, htcUnits, (u) => onChange({ ...stream, HTC: u }), false, theme)}
+            {unitNumberInline("HTC (heat transfer coefficient)", stream.HTC, htcUnits, (u) => onChange({ ...stream, HTC: u }), false, theme)}
           </section>
         </div>
 
