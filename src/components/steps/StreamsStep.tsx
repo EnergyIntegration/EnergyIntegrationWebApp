@@ -167,10 +167,10 @@ export function StreamsStep({
       <div className="flex flex-wrap items-center gap-2">
         <div className="text-xl font-bold mr-4">Streams</div>
 
-        <button className={`px-3 py-1.5 border rounded transition-colors ${buttonTone}`} onClick={() => onAddStream("hot")}>
+        <button type="button" className={`px-3 py-1.5 border rounded transition-colors ${buttonTone}`} onClick={() => onAddStream("hot")}>
           + Hot
         </button>
-        <button className={`px-3 py-1.5 border rounded transition-colors ${buttonTone}`} onClick={() => onAddStream("cold")}>
+        <button type="button" className={`px-3 py-1.5 border rounded transition-colors ${buttonTone}`} onClick={() => onAddStream("cold")}>
           + Cold
         </button>
 

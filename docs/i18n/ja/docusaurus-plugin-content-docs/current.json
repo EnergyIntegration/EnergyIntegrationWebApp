@@ -1,0 +1,34 @@
+{
+  "sidebar.tutorialSidebar.category.EnergyIntegration": {
+    "message": "EnergyIntegration",
+    "description": "The label for category 'EnergyIntegration' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.energyintegration-get-started": {
+    "message": "はじめに",
+    "description": "The label for category 'Get Started' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.energyintegration-reference": {
+    "message": "リファレンス",
+    "description": "The label for category 'Reference' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.WebApp": {
+    "message": "WebApp",
+    "description": "The label for category 'WebApp' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.webapp-get-started": {
+    "message": "はじめに",
+    "description": "The label for category 'Get Started' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.webapp-guides": {
+    "message": "ガイド",
+    "description": "The label for category 'Guides' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.webapp-reference": {
+    "message": "リファレンス",
+    "description": "The label for category 'Reference' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Architecture": {
+    "message": "アーキテクチャ",
+    "description": "The label for category 'Architecture' in sidebar 'tutorialSidebar'"
+  }
+}

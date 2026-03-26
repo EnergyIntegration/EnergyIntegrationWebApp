@@ -30,6 +30,7 @@ export function AsyncActionButton({
 
   return (
     <button
+      type="button"
       className={`px-3 py-1.5 border rounded transition-colors inline-flex items-center justify-center gap-2 text-center align-middle ${className} ${blocked ? "opacity-50 cursor-not-allowed" : ""}`}
       onClick={() => { if (!blocked) onClick(); }}
       disabled={blocked}

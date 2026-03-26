@@ -1,0 +1,21 @@
+.equation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.body :global(.katex-display) {
+  margin: 0;
+}
+
+.number {
+  white-space: nowrap;
+  color: var(--ifm-color-emphasis-700);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme="dark"] .number {
+  color: var(--ifm-color-emphasis-600);
+}

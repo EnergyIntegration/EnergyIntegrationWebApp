@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, MouseEvent } from "react";
 import type { ForbiddenMatchUI, IntervalsConfigUI, OptimizationConfigUI, ScalarSpecUI, StreamRowUI } from "./types/stream";
 import type { Theme } from "./types/theme";
@@ -470,7 +470,7 @@ export default function App() {
     }, 240);
   }
 
-  function positionTooltip(clientX: number, clientY: number) {
+  const positionTooltip = useEffectEvent((clientX: number, clientY: number) => {
     const rect = tooltipRef.current?.getBoundingClientRect();
     const tooltipWidth = rect?.width ?? 260;
     const tooltipHeight = rect?.height ?? 200;
@@ -483,7 +483,7 @@ export default function App() {
     if (y > maxY) y = maxY;
     if (y < 8) y = 8;
     setTooltipPos({ x, y });
-  }
+  });
 
   function handleCellLeave() {
     setHoverCell(null);
@@ -610,6 +610,8 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    void streams;
+    void intervalsConfig;
     setHenPlot(null);
     setBuildInspect(null);
     setHenReady(false);
@@ -681,12 +683,16 @@ export default function App() {
 
   useEffect(() => {
     if (step !== "solve") return;
+    void consoleLines;
     const el = consoleBoxRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [consoleLines, step]);
 
   useEffect(() => {
+    void tooltipMatrix;
+    void tooltipLoading;
+    void tooltipError;
     if (!tooltipCell || !tooltipMouseRef.current) return;
     positionTooltip(tooltipMouseRef.current.x, tooltipMouseRef.current.y);
   }, [tooltipCell, tooltipMatrix, tooltipLoading, tooltipError]);

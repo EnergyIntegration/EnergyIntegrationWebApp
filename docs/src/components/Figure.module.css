@@ -1,0 +1,21 @@
+.figure {
+  margin: 1.5rem 0;
+}
+
+.body {
+  width: 100%;
+}
+
+.caption {
+  margin-top: 0.7rem;
+  font-size: 0.94rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.captionLabel {
+  font-weight: 600;
+}
+
+[data-theme="dark"] .caption {
+  color: var(--ifm-color-emphasis-600);
+}

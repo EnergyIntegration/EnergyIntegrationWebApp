@@ -99,9 +99,9 @@ export function BuildStep({
     return maxAbs;
   }, [problem, heatCols]);
 
-  const hotIdx = composite ? composite.columns.findIndex((c) => c === "hot") : -1;
-  const coldIdx = composite ? composite.columns.findIndex((c) => c === "cold") : -1;
-  const feasibleHcIdx = composite ? composite.columns.findIndex((c) => c === "feasible_hc") : -1;
+  const hotIdx = composite ? composite.columns.indexOf("hot") : -1;
+  const coldIdx = composite ? composite.columns.indexOf("cold") : -1;
+  const feasibleHcIdx = composite ? composite.columns.indexOf("feasible_hc") : -1;
   const utilityTargets = useMemo(() => {
     if (!composite || feasibleHcIdx < 0 || composite.rows.length === 0) return null;
     const first = Number(composite.rows[0]?.[feasibleHcIdx]);
